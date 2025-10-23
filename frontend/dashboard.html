@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard • Login System</title>
+  <link rel="stylesheet" href="./styles.css"/>
+  <style>
+    /* minimal extras for dashboard */
+    .topbar{
+      display:flex; justify-content:space-between; align-items:center;
+      background:#0f1115; border:1px solid #1f2937; border-radius:12px;
+      padding:12px 14px; margin:18px auto; max-width:720px;
+    }
+    .chip{padding:6px 10px;border-radius:999px;background:#0a0c10;border:1px solid #2a2f3a;color:#e5e7eb}
+    .wrap{max-width:720px;margin:0 auto;padding:0 16px}
+    .card{background:#0d1220;border:1px solid #1f2937;border-radius:14px;padding:18px;margin-top:16px}
+    .btn.logout{background:linear-gradient(90deg,#ef4444,#f97316);color:#fff}
+    pre{white-space:pre-wrap;background:#0a0c10;border:1px solid #2a2f3a;border-radius:10px;padding:12px;color:#e5e7eb}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="topbar">
+      <div>
+        <strong>Dashboard</strong>
+        <span id="emailChip" class="chip">Loading…</span>
+      </div>
+      <button id="logoutBtn" class="btn logout">Logout</button>
+    </div>
+
+    <section class="card">
+      <h3 style="margin:0 0 8px">Profile</h3>
+      <p id="hello">Hello!</p>
+    </section>
+
+    <section class="card">
+      <h3 style="margin:0 0 8px">Protected API check</h3>
+      <button id="callBtn" class="btn secondary" style="width:auto">Call protected route</button>
+      <pre id="apiOut" style="margin-top:10px"></pre>
+    </section>
+  </main>
+
+  <script>
+    const API = "http://localhost:5000/api/auth";
+
+    // Read token, redirect if missing
+    const token = localStorage.getItem("token");
+    if(!token){
+      location.href = "./index.html";
+    }
+
+    // Decode JWT payload to display email (no crypto dependency)
+    function decodeEmail(jwt){
+      try{
+        const payload = jwt.split(".")[1];
+        const json = JSON.parse(atob(payload.replace(/-/g,"+").replace(/_/g,"/")));
+        return json.email || "User";
+      }catch{ return "User"; }
+    }
+
+    // Set UI labels
+    const email = decodeEmail(token);
+    document.getElementById("emailChip").textContent = email;
+    document.getElementById("hello").textContent = "Hello, " + email;
+
+    // Logout
+    document.getElementById("logoutBtn").onclick = () => {
+      localStorage.removeItem("token");
+      location.href = "./index.html";
+    };
+
+    // Example protected call (adjust to your backend; using /pending as sample user-protected route, change if admin-only)
+    document.getElementById("callBtn").onclick = async () => {
+      const out = document.getElementById("apiOut");
+      out.textContent = "Calling…";
+      try{
+        // Replace with any protected route you have, e.g., /me if implemented
+        const res = await fetch(API + "/me", {
+          headers:{ Authorization: "Bearer " + token }
+        });
+        if(res.status === 401){
+          out.textContent = "401 Unauthorized. Logging out…";
+          setTimeout(()=>{ localStorage.removeItem("token"); location.href="./index.html"; }, 800);
+          return;
+        }
+        const data = await res.json();
+        out.textContent = JSON.stringify(data, null, 2);
+      }catch(err){
+        out.textContent = "Error: " + (err.message || "Network error");
+      }
+    };
+  </script>
+</body>
+</html>

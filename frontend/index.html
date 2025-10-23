@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login System</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+  <main class="center">
+    <section class="panel">
+      <h1 class="visually-hidden">Login System</h1>
+
+      <!-- LOGIN VIEW -->
+      <div id="loginView" class="view show">
+        <input id="liEmail" class="field" type="text" placeholder="Phone number, username, or email" />
+        <input id="liPassword" class="field" type="password" placeholder="Password" />
+        <button id="loginBtn" class="btn primary">Log in</button>
+
+        <div class="divider"><span>OR</span></div>
+
+        <a href="#" class="muted link">Forgot password?</a>
+
+        <div class="bottom-line">
+          <span>Don't have an account?</span>
+          <button id="toSignup" class="link strong">Sign up</button>
+        </div>
+
+        <p id="loginMsg" class="msg"></p>
+      </div>
+
+      <!-- SIGNUP VIEW -->
+      <div id="signupView" class="view">
+        <input id="suEmail" class="field" type="email" placeholder="Enter your email" />
+        <input id="suPassword" class="field" type="password" placeholder="Create a password" />
+        <button id="signupBtn" class="btn secondary">Sign up</button>
+
+        <div class="bottom-line">
+          <span>Have an account?</span>
+          <button id="toLogin" class="link strong">Log in</button>
+        </div>
+
+        <p id="signupMsg" class="msg"></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Backend base URL
+    const API = "http://localhost:5000/api/auth";
+
+    // Toggle between views
+    const loginView = document.getElementById("loginView");
+    const signupView = document.getElementById("signupView");
+    const swap = (to) => {
+      loginView.classList.toggle("show", to==="login");
+      signupView.classList.toggle("show", to==="signup");
+    };
+    document.getElementById("toSignup").onclick = () => swap("signup");
+    document.getElementById("toLogin").onclick  = () => swap("login");
+
+    const setMsg = (id, text, ok=false) => {
+      const el = document.getElementById(id);
+      el.textContent = text || "";
+      el.className = "msg " + (ok ? "ok" : "err");
+    };
+
+    // L
+    document.getElementById("loginBtn").onclick = async () => {
+      setMsg("loginMsg","Logging in…");
+      try{
+        const body = {
+          email: document.getElementById("liEmail").value.trim(),
+          password: document.getElementById("liPassword").value
+        };
+        const res = await fetch(API + "/login", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.message || "Login failed");
+        localStorage.setItem("token", data.token);
+        setMsg("loginMsg","Success! Redirecting…", true);
+        location.href = "./dashboard.html";
+      }catch(err){
+        setMsg("loginMsg", err.message || "Failed to fetch");
+      }
+    };
+
+    // SIGNUP
+    document.getElementById("signupBtn").onclick = async () => {
+      setMsg("signupMsg","Creating account…");
+      try{
+        const body = {
+          name: "User",
+          email: document.getElementById("suEmail").value.trim(),
+          password: document.getElementById("suPassword").value
+        };
+        const res = await fetch(API + "/signup", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.message || "Signup failed");
+        setMsg("signupMsg","Signup success. Await admin approval.", true);
+        swap("login");
+      }catch(err){
+        setMsg("signupMsg", err.message || "Failed to fetch");
+      }
+    };
+
+    // If already logged in, go straight to dashboard
+    (function autoRedirectIfLoggedIn(){
+      const token = localStorage.getItem("token");
+      if(token) location.href = "./dashboard.html";
+    })();
+
+    // Default view
+    swap("login");
+  </script>
+</body>
+</html>
