@@ -5,91 +5,74 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Dashboard • Login System</title>
   <link rel="stylesheet" href="./styles.css"/>
-  <style>
-    /* minimal extras for dashboard */
-    .topbar{
-      display:flex; justify-content:space-between; align-items:center;
-      background:#0f1115; border:1px solid #1f2937; border-radius:12px;
-      padding:12px 14px; margin:18px auto; max-width:720px;
-    }
-    .chip{padding:6px 10px;border-radius:999px;background:#0a0c10;border:1px solid #2a2f3a;color:#e5e7eb}
-    .wrap{max-width:720px;margin:0 auto;padding:0 16px}
-    .card{background:#0d1220;border:1px solid #1f2937;border-radius:14px;padding:18px;margin-top:16px}
-    .btn.logout{background:linear-gradient(90deg,#ef4444,#f97316);color:#fff}
-    pre{white-space:pre-wrap;background:#0a0c10;border:1px solid #2a2f3a;border-radius:10px;padding:12px;color:#e5e7eb}
-  </style>
 </head>
 <body>
-  <main class="wrap">
-    <div class="topbar">
-      <div>
-        <strong>Dashboard</strong>
-        <span id="emailChip" class="chip">Loading…</span>
+  <div class="dashboard-wrap">
+    <div class="dashboard-container">
+      <header class="dashboard-header">
+        <h1>Dashboard</h1>
+        <div class="user-info">
+          <span class="user-email" id="userEmail">Loading...</span>
+          <button class="btn-logout" id="logoutBtn">Logout</button>
+        </div>
+      </header>
+
+      <div class="dashboard-card">
+        <h2>Profile</h2>
+        <p>Hello, <strong id="userName">User</strong></p>
+        <p>Email: <strong id="userEmailDisplay">--</strong></p>
+        <p>Status: <strong id="userStatus">--</strong></p>
       </div>
-      <button id="logoutBtn" class="btn logout">Logout</button>
+
+      <div class="dashboard-card">
+        <h2>Protected API check</h2>
+        <p>Test calling a protected route with your token:</p>
+        <div class="api-test">
+          <button class="btn primary-blue" id="callApiBtn">Call protected route</button>
+          <div id="apiResponse" class="api-response" style="display:none"></div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <section class="card">
-      <h3 style="margin:0 0 8px">Profile</h3>
-      <p id="hello">Hello!</p>
-    </section>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const token = localStorage.getItem("token");
+  const userStr = localStorage.getItem("user");
 
-    <section class="card">
-      <h3 style="margin:0 0 8px">Protected API check</h3>
-      <button id="callBtn" class="btn secondary" style="width:auto">Call protected route</button>
-      <pre id="apiOut" style="margin-top:10px"></pre>
-    </section>
-  </main>
+  if (!token) { location.replace("./index.html"); return; }
 
-  <script>
-    const API = "http://localhost:5000/api/auth";
+  let user = {};
+  try { user = JSON.parse(userStr || "{}"); } catch {}
 
-    // Read token, redirect if missing
-    const token = localStorage.getItem("token");
-    if(!token){
-      location.href = "./index.html";
+  document.getElementById("userEmail").textContent = user.email || "Unknown";
+  document.getElementById("userName").textContent = (user.username || user.email?.split('@')[0] || "User");
+  document.getElementById("userEmailDisplay").textContent = user.email || "--";
+  document.getElementById("userStatus").textContent = user.status || "--";
+
+  document.getElementById("logoutBtn").addEventListener("click", function() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    location.replace("./index.html");
+  });
+
+  document.getElementById("callApiBtn").addEventListener("click", async function() {
+    const responseEl = document.getElementById("apiResponse");
+    responseEl.style.display = "block";
+    responseEl.textContent = "Calling API...";
+
+    try {
+      // Example protected or public check; replace with your actual protected endpoint if needed
+      const r = await fetch(`/api/auth/check-username?u=test`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const d = await r.json().catch(()=> ({}));
+      responseEl.textContent = JSON.stringify(d, null, 2);
+    } catch(e) {
+      responseEl.textContent = "Error: " + (e.message || "Network");
     }
-
-    // Decode JWT payload to display email (no crypto dependency)
-    function decodeEmail(jwt){
-      try{
-        const payload = jwt.split(".")[1];
-        const json = JSON.parse(atob(payload.replace(/-/g,"+").replace(/_/g,"/")));
-        return json.email || "User";
-      }catch{ return "User"; }
-    }
-
-    // Set UI labels
-    const email = decodeEmail(token);
-    document.getElementById("emailChip").textContent = email;
-    document.getElementById("hello").textContent = "Hello, " + email;
-
-    // Logout
-    document.getElementById("logoutBtn").onclick = () => {
-      localStorage.removeItem("token");
-      location.href = "./index.html";
-    };
-
-    // Example protected call (adjust to your backend; using /pending as sample user-protected route, change if admin-only)
-    document.getElementById("callBtn").onclick = async () => {
-      const out = document.getElementById("apiOut");
-      out.textContent = "Calling…";
-      try{
-        // Replace with any protected route you have, e.g., /me if implemented
-        const res = await fetch(API + "/me", {
-          headers:{ Authorization: "Bearer " + token }
-        });
-        if(res.status === 401){
-          out.textContent = "401 Unauthorized. Logging out…";
-          setTimeout(()=>{ localStorage.removeItem("token"); location.href="./index.html"; }, 800);
-          return;
-        }
-        const data = await res.json();
-        out.textContent = JSON.stringify(data, null, 2);
-      }catch(err){
-        out.textContent = "Error: " + (err.message || "Network error");
-      }
-    };
-  </script>
+  });
+});
+</script>
 </body>
 </html>

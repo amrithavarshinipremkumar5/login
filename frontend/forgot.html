@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Forgot • Login System</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+  <main class="auth-wrap">
+    <section class="auth-card">
+      <h1 class="title">Forgot your password?</h1>
+
+      <form id="forgotForm" class="form">
+        <label class="input-group">
+          <span class="icon"></span>
+          <input id="email" class="field no-eye" type="email" placeholder="Your email" autocomplete="email" required/>
+        </label>
+        <button type="submit" class="btn primary-blue">Send reset link</button>
+        <p id="m" class="msg"></p>
+      </form>
+
+      <div class="switch-line">
+        <a class="link-strong" href="./index.html">Back to login</a>
+      </div>
+    </section>
+  </main>
+<script>
+const API = ""; // same-origin
+const form = document.getElementById("forgotForm");
+const m = document.getElementById("m");
+form.addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  m.className = "msg";
+  m.textContent = "Sending…";
+  const email = document.getElementById("email").value.trim();
+  try{
+    const r = await fetch(`${API}/api/auth/forgot`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ email })
+    });
+    const d = await r.json().catch(()=> ({}));
+    if(!r.ok){
+      m.className = "msg err";
+      m.textContent = d.message || "Failed to start reset";
+      return;
+    }
+    m.className = "msg";
+    m.textContent = "If an account exists, a confirmation email has been sent.";
+  }catch(err){
+    m.className = "msg err";
+    m.textContent = "Network error";
+  }
+});
+</script>
+
+</body>
+</html>

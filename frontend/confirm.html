@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Confirm • Login System</title>
+  <link rel="stylesheet" href="./styles.css"/>
+  <style>
+    html,body{height:100%}
+    body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0b0f19}
+    .sheet{width:100%;max-width:560px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:28px}
+    .title{margin:0 0 8px;color:#0b0f19}
+    .msg{margin:6px 0 18px;color:#374151}
+    .row{display:flex;gap:12px}
+    .btn{flex:1;padding:14px 16px;border-radius:10px;border:0;font-weight:600}
+    .btn.yes{background:#1a73e8;color:#fff}
+    .btn.no{background:#eef2f7;color:#0b0f19}
+    .foot{margin-top:12px;text-align:center}
+    a{color:#1a73e8;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <h2 class="title">Is this you?</h2>
+    <p id="msg" class="msg">Please confirm this password reset.</p>
+    <div class="row">
+      <button id="yes" class="btn yes">Yes, it's me</button>
+      <button id="no" class="btn no">It's not me</button>
+    </div>
+    <div class="foot"><a href="./index.html">Back to login</a></div>
+  </div>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  const API = ""; // same-origin
+  const p = new URLSearchParams(location.search);
+  const token = p.get("token");
+  const email = p.get("email");
+  const deny  = p.get("deny") === "true";
+  const msg = document.getElementById("msg");
+  const yesBtn = document.getElementById("yes");
+  const noBtn  = document.getElementById("no");
+  if(!token){ msg.textContent="Invalid request"; yesBtn.disabled = noBtn.disabled = true; return; }
+  if(deny){
+    fetch(`${API}/api/auth/forgot-confirm`, {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ token, allow:false })
+    }).then(()=>{ msg.textContent="Request cancelled"; yesBtn.disabled = noBtn.disabled = true; })
+      .catch(()=>{ msg.textContent="Error"; });
+    return;
+  }
+  let busy=false;
+  async function proceedYes(){
+    if(busy) return;
+    busy=true; yesBtn.disabled=true; noBtn.disabled=true; msg.textContent="Confirming…";
+    try{
+      const r1 = await fetch(`${API}/api/auth/forgot-confirm`, {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ token, allow:true })
+      });
+      if(!r1.ok) throw new Error("Confirm failed");
+      const r2 = await fetch(`${API}/api/auth/issue-reset`, {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ email })
+      });
+      const d2 = await r2.json();
+      if(!r2.ok) throw new Error(d2.message || "Issue token failed");
+      location.replace(`/reset.html?token=${encodeURIComponent(d2.token)}`);
+    }catch(e){
+      busy=false; yesBtn.disabled=false; noBtn.disabled=false; msg.textContent = e.message || "Error";
+    }
+  }
+  yesBtn.addEventListener("click", proceedYes);
+  if(/Mobi|Android|iPhone/i.test(navigator.userAgent)){ setTimeout(()=>{ if(!busy) proceedYes(); }, 250); }
+  noBtn.addEventListener("click", async ()=>{
+    try{
+      await fetch(`${API}/api/auth/forgot-confirm`, {
+        method:"POST", headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ token, allow:false })
+      });
+      msg.textContent = "Request cancelled";
+    }catch{ msg.textContent = "Error"; }
+  });
+});
+</script>
+
+</body>
+</html>

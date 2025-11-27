@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign up • Login System</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+  <main class="auth-wrap">
+    <section class="auth-card">
+      <h1 class="title">Create an account</h1>
+
+      <form id="signupForm" class="form">
+        <label class="input-group">
+          <span class="icon"></span>
+          <input name="name" class="field" type="text" placeholder=" Enter your name" autocomplete="name" required/>
+        </label>
+
+        <label class="input-group">
+          <span class="icon"></span>
+          <input id="suUsername" name="username" class="field" type="text" placeholder=" Enter your Username" autocomplete="username" required/>
+        </label>
+        <small id="userHelp" class="hint" style="display:none">Letters and numbers only, 3–20</small>
+
+        <label class="input-group">
+          <span class="icon"></span>
+          <input name="email" class="field" type="email" placeholder=" Enter your Email" autocomplete="email" required/>
+        </label>
+
+        <label class="input-group input-eye">
+          <span class="icon"></span>
+          <input id="suPassword" name="password" class="field" type="password" placeholder=" Enter your Password" autocomplete="new-password" required/>
+          <button type="button" id="suEye" class="eye-btn" aria-label="Show password">
+            <span id="suEyeIcon" class="eye-icon" data-state="hide"></span>
+          </button>
+        </label>
+        <div id="pwInline" class="pw-inline">At least 8, start with capital, include letters, numbers and a special character</div>
+
+        <button type="submit" class="btn primary-blue">Create an account</button>
+        <p id="signupMsg" class="msg"></p>
+      </form>
+
+      <div class="switch-line">
+        <span>I'm already a member?</span>
+        <a class="link-strong" href="./index.html">Sign In</a>
+      </div>
+    </section>
+  </main>
+
+<script>
+  const API = ""; // same-origin
+  const usernameOk = (u) => /^[A-Za-z0-9]{3,20}$/.test(u);
+  const rules = {
+    len: p => p.length >= 8,
+    upperFirst: p => /^[A-Z]/.test(p),
+    alphaNum: p => /[A-Za-z]/.test(p) && /\d/.test(p),
+    special: p => /[^A-Za-z0-9]/.test(p)
+  };
+
+  // Username hints and availability
+  const unHint = document.getElementById("userHelp");
+  const unInput = document.getElementById("suUsername");
+  unInput.addEventListener("focus", ()=> unHint.style.display = "block");
+  unInput.addEventListener("blur",  ()=> unHint.style.display = "none");
+
+  const pw = document.getElementById("suPassword");
+  const pwHint = document.getElementById("pwInline");
+  pw.addEventListener("focus", ()=> pwHint.style.display = "block");
+  pw.addEventListener("blur",  ()=> pwHint.style.display = "");
+
+  let timer;
+  unInput.addEventListener("input", ()=>{
+    unHint.textContent="Letters and numbers only, 3–20"; unHint.className="hint";
+    const u = unInput.value.trim(); if(!u || !usernameOk(u)) return;
+    clearTimeout(timer); timer = setTimeout(async ()=>{
+      try{
+        const r = await fetch(`${API}/api/auth/check-username?u=` + encodeURIComponent(u));
+        const d = await r.json();
+        if(d.taken){ unHint.textContent="Username already exists"; unHint.classList.add("err"); }
+        else { unHint.textContent="Username available"; unHint.classList.add("ok"); }
+      }catch{}
+    },300);
+  });
+
+  // Eye toggle
+  (function(){
+    const inp = document.getElementById('suPassword');
+    const btn = document.getElementById('suEye');
+    const icon = document.getElementById('suEyeIcon');
+    btn.addEventListener('click', ()=>{
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      icon.setAttribute('data-state', show ? 'show' : 'hide');
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+  })();
+
+  // Signup submit
+  const form = document.getElementById("signupForm");
+  const signupMsg = document.getElementById("signupMsg");
+  form.addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    signupMsg.className="msg"; signupMsg.textContent="Creating account…";
+    const fd = new FormData(form);
+    const body = Object.fromEntries(fd.entries());
+    try{
+      if(!usernameOk(body.username)) throw new Error("Username must be letters/numbers (3–20)");
+      const p = body.password || "";
+      if(!(rules.len(p)&&rules.upperFirst(p)&&rules.alphaNum(p)&&rules.special(p)))
+        throw new Error("Password doesn’t meet the rules");
+
+      const r = await fetch(`${API}/api/auth/signup`,{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ name: body.name, email: body.email, username: body.username, password: body.password })
+      });
+      const d = await r.json();
+      if(!r.ok) throw new Error(d.message||"Signup failed");
+      signupMsg.className="msg ok"; signupMsg.textContent="Signup success. Await admin approval.";
+      setTimeout(()=>location.href="./index.html", 900);
+    }catch(err){
+      signupMsg.className="msg err"; signupMsg.textContent=err.message||"Network error";
+    }
+  });
+</script>
+</body>
+</html>

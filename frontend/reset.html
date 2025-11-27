@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reset Password • Login System</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head>
+<body>
+  <main class="auth-wrap">
+    <section class="auth-card">
+      <h1 class="title">Reset Your Password</h1>
+
+      <form id="resetForm" class="form">
+        <label class="input-group has-toggle">
+          <input name="password" class="field" type="password" placeholder="New Password" required/>
+          <!-- password rules hint -->
+          <div id="pwResetHint" class="pw-inline">
+            At least 8, start with capital, include letters, numbers and a special character
+          </div>
+
+          <button type="button" class="eye-toggle" data-target="password">
+            <svg class="eye-open" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            <svg class="eye-closed" style="display:none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+            </svg>
+          </button>
+        </label>
+
+        <label class="input-group has-toggle">
+          <input name="confirmPassword" class="field" type="password" placeholder="Confirm New Password" required/>
+          <button type="button" class="eye-toggle" data-target="confirmPassword">
+            <svg class="eye-open" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            <svg class="eye-closed" style="display:none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+            </svg>
+          </button>
+        </label>
+
+        <button type="submit" class="btn primary-blue">Reset Password</button>
+        <p id="resetMsg" class="msg"></p>
+      </form>
+
+      <div class="switch-line">
+        <span>Remember your password?</span>
+        <a class="link-strong" href="./index.html">Log in</a>
+      </div>
+    </section>
+  </main>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const API = ""; // same-origin
+  const form = document.getElementById("resetForm");
+  const msgEl = document.getElementById("resetMsg");
+  const params = new URLSearchParams(location.search);
+  const token = params.get("token");
+
+  if (!token) {
+    msgEl.className = "msg err";
+    msgEl.textContent = "No reset token found";
+    return;
+  }
+
+  // password rules hint show/hide
+  const pwInput = document.querySelector('input[name="password"]');
+  const pwHint  = document.getElementById("pwResetHint");
+  if (pwInput && pwHint) {
+    pwHint.style.display = "none";
+    pwInput.addEventListener("focus", () => {
+      pwHint.style.display = "block";
+    });
+    pwInput.addEventListener("blur", () => {
+      pwHint.style.display = "none";
+    });
+  }
+
+  // eye toggle buttons
+  document.querySelectorAll(".eye-toggle").forEach(btn => {
+    btn.addEventListener("click", function() {
+      const target = this.dataset.target;
+      const input = document.querySelector(`input[name="${target}"]`);
+      const eyeOpen = this.querySelector(".eye-open");
+      const eyeClosed = this.querySelector(".eye-closed");
+      if (!input) return;
+      if (input.type === "password") {
+        input.type = "text";
+        eyeOpen.style.display = "none";
+        eyeClosed.style.display = "block";
+      } else {
+        input.type = "password";
+        eyeOpen.style.display = "block";
+        eyeClosed.style.display = "none";
+      }
+    });
+  });
+
+  // submit handler
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msgEl.className = "msg";
+    msgEl.textContent = "Resetting password…";
+
+    const fd = new FormData(form);
+    const password = fd.get("password");
+    const confirmPassword = fd.get("confirmPassword");
+    if (password !== confirmPassword) {
+      msgEl.className = "msg err";
+      msgEl.textContent = "Passwords don't match";
+      return;
+    }
+
+    try {
+      const r = await fetch(`${API}/api/auth/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) {
+        msgEl.className = "msg err";
+        msgEl.textContent = d.message || "Reset failed";
+        return;
+      }
+
+      msgEl.className = "msg ok";
+      msgEl.textContent = "Password reset successfully! Redirecting...";
+      setTimeout(() => location.replace("./index.html"), 1500);
+    } catch {
+      msgEl.className = "msg err";
+      msgEl.textContent = "Network error";
+    }
+  });
+});
+</script>
+
+</body>
+</html>
