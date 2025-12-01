@@ -19,9 +19,11 @@
 
         <label class="input-group">
           <span class="icon"></span>
-          <input id="suUsername" name="username" class="field" type="text" placeholder=" Enter your Username" autocomplete="username" required/>
-        </label>
-        <small id="userHelp" class="hint" style="display:none">Letters and numbers only, 3–20</small>
+          <input id="suUsername" name="username" class="field" type="text" placeholder=" Enter number 1–99" ... />
+          
+          <small id="userHelp" class="hint" style="display:none">
+            Enter a number between 1 and 99
+          </small>
 
         <label class="input-group">
           <span class="icon"></span>
@@ -35,7 +37,7 @@
             <span id="suEyeIcon" class="eye-icon" data-state="hide"></span>
           </button>
         </label>
-        <div id="pwInline" class="pw-inline">At least 8, start with capital, include letters, numbers and a special character</div>
+        <div id="pwInline" class="pw-inline">At least 8, start with capital letter, numbers and a special character</div>
 
         <button type="submit" class="btn primary-blue">Create an account</button>
         <p id="signupMsg" class="msg"></p>
@@ -50,7 +52,19 @@
 
 <script>
   const API = ""; // same-origin
-  const usernameOk = (u) => /^[A-Za-z0-9]{3,20}$/.test(u);
+  const usernameOk = (u) => {
+    const s = String(u || "").trim();
+    // Full username basic rule: 3–20 chars, letters+digits only
+    if (!/^[A-Za-z0-9]{3,20}$/.test(s)) return false;
+
+    // Split into name part + number part (trailing digits)
+    const m = s.match(/^([A-Za-z]+)(\d{1,2})$/);
+    if (!m) return false;           // must be letters then 1–2 digits
+
+    const num = Number(m[2]);       // trailing digits
+    return num >= 1 && num <= 99;   // 1–99 only
+  };
+
   const rules = {
     len: p => p.length >= 8,
     upperFirst: p => /^[A-Z]/.test(p),
@@ -70,8 +84,9 @@
   pw.addEventListener("blur",  ()=> pwHint.style.display = "");
 
   let timer;
-  unInput.addEventListener("input", ()=>{
-    unHint.textContent="Letters and numbers only, 3–20"; unHint.className="hint";
+  unInput.addEventListener("input", () => {
+    unHint.textContent = "Letters then number 1–99 (e.g. Amritha12)";
+    unHint.className = "hint";
     const u = unInput.value.trim(); if(!u || !usernameOk(u)) return;
     clearTimeout(timer); timer = setTimeout(async ()=>{
       try{
@@ -105,7 +120,9 @@
     const fd = new FormData(form);
     const body = Object.fromEntries(fd.entries());
     try{
-      if(!usernameOk(body.username)) throw new Error("Username must be letters/numbers (3–20)");
+      if (!usernameOk(body.username)) {
+        throw new Error("Username must be letters followed by a number between 1 and 99 (e.g. name12)");
+      }
       const p = body.password || "";
       if(!(rules.len(p)&&rules.upperFirst(p)&&rules.alphaNum(p)&&rules.special(p)))
         throw new Error("Password doesn’t meet the rules");

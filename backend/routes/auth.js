@@ -168,20 +168,31 @@ router.post("/signup", async (req, res) => {
 });
 
 // Admin approve
-router.patch("/approve/:id", async (req, res) => {
+// Admin approve
+// Admin approve
+  router.patch("/approve/:id", async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id || "").trim();
+    console.log("APPROVE HIT id =", JSON.stringify(id));
+   // <-- add
+
     const user = await User.findByIdAndUpdate(
       id,
       { $set: { status: "approved" } },
       { new: true }
     );
-    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user) {
+      console.log("APPROVE: user not found");
+      return res.status(404).json({ message: "User not found" });
+    }
+
     return res.json({
       ok: true,
       user: { id: user._id, email: user.email, status: user.status }
     });
-  } catch {
+  } catch (err) {
+    console.error("APPROVE ERROR:", err);   // <-- add
     return res.status(500).json({ message: "Approve failed" });
   }
 });
